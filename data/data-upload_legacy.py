@@ -62,6 +62,7 @@ def get_content(driver):
     for title in driver.find_elements(By.TAG_NAME, 'h1'):
         curr = title.text
         pos = title.location['y']
+        #print(F"H1 CURR IS {curr} and POS IS {pos}")
         if curr:
             curr = curr.strip()
             curr = "@@@^^^" + curr + "^^^@@@"
@@ -87,6 +88,7 @@ def get_content(driver):
     for para in driver.find_elements(By.TAG_NAME, 'p'):
         curr = para.text
         pos = para.location['y']
+        print(F"P CURR IS {curr} and POS IS {pos}")
         if curr:
             curr = curr.strip()
             if curr and len(curr) > 0:
@@ -104,8 +106,10 @@ def get_content(driver):
             lines.append((curr, pos))
 
     lines.sort(key = lambda x: x[1])
+    print(f"FIRST UNZIPPED LINE IS {lines[0]}")
     if len(lines) > 0:
         lines = list(zip(*lines))[0]
+        print(f"FIRST ZIPPED LINE IS {lines[0]}")
         return ' '.join(lines)
     else:
         return None
@@ -115,6 +119,7 @@ def chunk_page(content):
     CHUNK_SIZE = 200
     CHUNK_MAX = 250
     page_text_chunks = [];
+    print(f"CONTENT IS {content}")
     if num_tokens_from_string(content, "cl100k_base") > CHUNK_SIZE:
         split = '@@@'.join(content.split('. ')).split('@@@')
         chunkText = ""
@@ -200,6 +205,7 @@ def main():
         additional = open("additional.txt", "r")
         for url in additional.readlines():
             make_page(cur, driver, url.rstrip())
+            break
         additional.close()
 
         

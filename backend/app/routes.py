@@ -24,11 +24,11 @@ async def chat_handler(request: Request, query: query):
     content = (
         f"""Please answer the following IMPORTANT PROMPT truthfully and as accurately as possible. 
                 Use the following sources (which shall be denoted with a SOURCE TITLE and SOURCE CONTENT). 
-                Try to not directly copy the sources word-for-word. Remember, you help developers with their questions 
-                about the AWS documentation and TRY TO USE THE SOURCES AS CONTEXT to the best of your ability. However, you want to
+                Try to not directly copy the sources word-for-word. Remember, you help learners with their questions 
+                about the MIT content and TRY TO USE THE SOURCES AS CONTEXT to the best of your ability. However, you want to
                 mainly focus on answering the user prompt. Do not randomly use the sources that have nothing to
                 do with the question asked by the user. You do not have to explicity
-                mention the source names and which sources you used in your answer.
+                mention the source names and which sources you used in your answer.  If the answer cannot be found in the sources, RESPOND ONLY WITH "Sorry, I could not find an answer from the MIT course content."
                 PLEASE MAKE THE RESPONSE A {query.sentences.upper()} {query.sentences.upper()} {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
                 If you are giving a SHORT or MEDIUM response, do not add a long response with [Answer] or an "Answer" heading. 
                 Always try to keep track of your response length especially before you give the response.

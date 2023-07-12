@@ -1,9 +1,9 @@
 export type SiteConfig = typeof siteConfig
 
 export const siteConfig = {
-  name: "AWS Docs GPT",
+  name: "MIT Open Courseware GPT",
   description:
-    "AI-powered Search and Chat for AWS Documentation",
+    "AI-powered Search and Chat for MIT Open Courseware",
   mainNav: [
     {
       title: "Home",
@@ -15,7 +15,7 @@ export const siteConfig = {
     github: "https://github.com/alexy201/awsdocsgpt",
     docs: "https://ui.shadcn.com",
     personal: "https://github.com/alexy201",
-    documentation: "https://docs.aws.amazon.com",
+    documentation: "https://open.mit.edu/learn",
     antimetal: "https://www.antimetal.com/?utm_source=AWS_Docs_GPT&utm_medium=Footer_Link&utm_campaign=AWS_Docs_GPT"
   },
 }

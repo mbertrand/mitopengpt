@@ -23,7 +23,7 @@ export default function IndexPage() {
           AI-powered <span className="font-extrabold">Search</span> &{" "}
           <span className="font-extrabold">Chat</span> for{" "}
           <span className="font-extrabold text-antimetal">
-            <a href={siteConfig.links.documentation} target="_blank" rel="noopener noreferrer">AWS Documentation</a>
+            <a href={siteConfig.links.documentation} target="_blank" rel="noopener noreferrer">MIT Open Courseware</a>
           </span>{" "}
         </h1>
         <AntimetalComponent />

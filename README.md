@@ -1,10 +1,10 @@
-# AWS Docs GPT
+# MIT OpenCourseware GPT
 
-AI-powered search and chat for [AWS Documentation](https://docs.aws.amazon.com/).
+AI-powered search and chat for [MIT OpenCourseware](https://open.mit.edu/).
 
 ## How It Works
 
-AWS Docs GPT provides 2 things:
+MIT OpenCourseware GPT provides 2 things:
 
 1. A search interface.
 2. A chat interface.
@@ -50,7 +50,7 @@ Note: Or, connect to any PostgreSQL server using the env variables defined below
 3. Clone repo
 
 ```bash
-git clone https://github.com/alexy201/awsdocsgpt.git
+git clone https://github.com/mbertrand/mitopengpt.git
 ```
 
 4. Install dependencies
@@ -69,31 +69,37 @@ Create a .env.local file in the root of the frontend folder with the following v
 ```bash
 NEXT_PUBLIC_SEARCH_ENDPOINT =
 NEXT_PUBLIC_CHAT_ENDPOINT = 
+OPENAI_API_KEY = 
 ```
 
 Create a .env file in the root of the backend folder with the following variables:
 
 ```bash
-OPENAI_API_KEY = 
+OPENAI_API_KEY = # Your OpenAI API key
+# Connection info for the Postgres database that will store text chunks and embeddings
 POSTGRES_HOST = 
 POSTGRES_DB_NAME = 
 POSTGRES_USERNAME = 
-POSTGRES_TABLE_NAME = #if you used setup.sql, this should be "aws_chunks"
-POSTGRES_SEARCH_FUNCTION = #if you used setup.sql, this should be "aws_gpt_search"
+POSTGRES_TABLE_NAME = #if you used setup.sql, this should be "mit_open_chunks"
+POSTGRES_SEARCH_FUNCTION = #if you used setup.sql, this should be "mit_open_gpt_search"
 POSTGRES_PASSWORD = 
+# Connection info for the Postgres database from which MIT Open content will be retrieved
+OPEN_POSTGRES_HOST=
+OPEN_POSTGRES_DB_NAME=
+OPEN_POSTGRES_USERNAME=
+OPEN_POSTGRES_PASSWORD=
 ```
 
 ### Dataset
 
 6. Run parsing script
 
-Note: The data-upload.py script requires the same environment variables as the backend folder. Add AWS documentation links to the additional.txt file (one url on each line). This will import chunks + embeddings from those urls to the PostgreSQL DB specified in .env.
+Note: The ocw-upload.py script requires the same environment variables as the backend folder. 
 
 ```bash
-python3 data/data-upload.py
+python3 data/ocw-upload.py
 ```
 
-Please be patient! Depending on the number of links inputted, this process will take anywhere from 30 minutes to multiple hours.
 
 ### App
 
@@ -108,8 +114,4 @@ npm run dev
 
 ## Credits
 
-Thanks to [Mckay Wrigley](https://github.com/mckaywrigley) for inspiring this project.
-
-## Contact
-
-If you have any questions, feel free to reach out to me on [Twitter](https://twitter.com/sima_alexx)!
+Thanks to [Alex Sima](https://github.com/alexy201/awsdocsgpt) who developed the project on which this is heavily based.
