@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cd frontend && next dev",
     "build": "cd frontend && next build",
-    "start": "cd frontend && next build && next start -p 3000",
+    "start": "cd frontend && next build && next start -p $PORT",
     "lint": "cd frontend && next lint",
     "lint:fix": "cd frontend && next lint --fix",
     "preview": "cd frontend && next build && next start",
