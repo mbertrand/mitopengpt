@@ -1,1 +1,1 @@
-web: web: gunicorn -w 3 -k uvicorn.workers.UvicornWorker semantic_mitopen.main:app & npm run start
+web: npm run start
