@@ -1,1 +1,1 @@
-web: npm run start
+web: bin/start-nginx gunicorn -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker semantic_mitopen.main:app & npm run start
