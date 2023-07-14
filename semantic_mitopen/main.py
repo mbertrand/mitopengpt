@@ -32,6 +32,7 @@ async def startup():
     await database_instance.connect()
     app.state.db = database_instance
     _logger.info({"message": "FastAPI startup event"})
+    return app
 
 
 @app.on_event("shutdown")

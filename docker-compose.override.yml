@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+
+  nginx:
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/web.conf
+      - ./:/app
+
+  watch:
+    command: >
+      /bin/bash -c 'npm install --include=dev && npm run dev'
+

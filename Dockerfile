@@ -1,11 +1,20 @@
 FROM python:3.11.4
 
-WORKDIR /awsgpt
 
-COPY ./requirements.txt ./requirements.txt
+# pip
+RUN curl --silent --location https://bootstrap.pypa.io/get-pip.py | python3 -
+RUN pip install -U pip-tools
 
-RUN pip install --no-cache-dir --upgrade -r ./requirements.txt
+# Add, and run as, non-root user.
+RUN mkdir /app
+RUN adduser --disabled-password --gecos "" mitodl
 
-COPY ./app ./app
+# Install project packages
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
-COPY ./logging.yaml ./logging.yaml
+# Add project
+COPY . /app
+WORKDIR /app
+RUN chown -R mitodl:mitodl /app
+
