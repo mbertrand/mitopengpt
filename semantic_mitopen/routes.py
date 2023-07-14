@@ -2,8 +2,8 @@ from fastapi import APIRouter
 import os
 import openai
 import numpy as np
-from app.schemas import query, message, search_response, chat_response
-import app.exceptions as exceptions
+from semantic_mitopen.schemas import query, message, search_response, chat_response
+import semantic_mitopen.exceptions as exceptions
 from fastapi import Request
 import logging
 

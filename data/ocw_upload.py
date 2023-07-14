@@ -1,11 +1,5 @@
 import time
 import psycopg2
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-import json
-import jmespath
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 import tiktoken
 import re
 import openai
@@ -114,7 +108,17 @@ def make_file_embeddings(cur, content_file):
     page_text_chunks = chunk_file(content)
 
     for chunk in page_text_chunks:
-        pg_chunk = embed_chunk(content_file, title, url, chunk)
+        try:
+            pg_chunk = embed_chunk(content_file, title, url, chunk)
+        except:
+            print("Embed API request failed, trying again in 5 seconds...")
+            time.sleep(5)
+            try:
+                pg_chunk = embed_chunk(content_file, title, url, chunk)
+            except Exception as e:
+                print(f"Failed to embed {content_file['title']}")
+                print(e)
+                return        
         embedding = np.array(pg_chunk.embedding)
         sql = 'INSERT INTO ' + os.getenv('POSTGRES_TABLE_NAME') + '(run_title, run_id, run_url, page_title, page_url, content, content_length, content_tokens, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);'
         cur.execute(sql, (
@@ -145,9 +149,8 @@ def main():
         )
 
         cur_open = conn_open.cursor()
-        course_ids = [
-            "4f29cda28d245c8b6b8417cfe8ab3998+9.00SC"
-        ]
+        start_course_id = os.getenv('START_COURSE_ID', "50f8d6059dd4313a5e46b05ba5365d2a+14.472")
+        #courses/14-472-public-economics-ii-spring-2004
 
         print('Connecting to the vector PostgreSQL database...')
         conn_vector = psycopg2.connect(
@@ -159,24 +162,31 @@ def main():
         register_vector(conn_vector)
 
         OPEN_QUERY = """
-        SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.url as run_url, run.platform FROM course_catalog_contentfile as cf 
+        SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.url as run_url, run.platform, course.course_id FROM course_catalog_contentfile as cf 
         LEFT JOIN course_catalog_learningresourcerun AS run ON cf.run_id = run.id INNER JOIN course_catalog_course AS course ON run.object_id = course.id
-        WHERE cf.content IS NOT NULL and cf.content != '' and run.published IS TRUE and course.course_id IN %s
+        WHERE cf.content IS NOT NULL and cf.content != '' and course.published IS TRUE and run.published IS TRUE and course.course_id >= %s ORDER BY course.course_id ASC, run.run_id ASC, cf.id ASC;
         """
 
-        cur_open.execute(OPEN_QUERY, [tuple(course_ids)])
+        print("Getting content files...")
+        cur_open.execute(OPEN_QUERY, [start_course_id,])
         content_files = cur_open.fetchall()
+
+        print("Start embedding files...")
+        course = None
+        run = None
         for content_file in content_files:
+            if not content_file["content"].strip():
+                continue
+            if content_file['course_id'] != course:
+                print(f"Course: {content_file['course_id']}")
+                course = content_file['course_id']
+            if content_file['run_id'] != run:
+                print(f"(Run: {content_file['run_id']})")
+                run = content_file['run_id']
+            print(f"Embedding {content_file['key']}")
             cur_vector = conn_vector.cursor()
-            try:
-                make_file_embeddings(cur_vector, content_file)
-            except:
-                time.sleep(5)
-                try:
-                    make_file_embeddings(cur_vector, content_file)
-                except:
-                    print(f"Failed to embed {content_file['title']}")
-                    continue
+            make_file_embeddings(cur_vector, content_file)
+            print("Committing...")
             conn_vector.commit()
             cur_vector.close()
             
@@ -186,10 +196,10 @@ def main():
     finally:
         if conn_vector is not None:
             conn_vector.close()
-            print('Database connection closed.')
+            print('Vector database connection closed.')
         if conn_open is not None:
             conn_open.close()
-            print('Database connection closed.')           
+            print('MIT Open database connection closed.')           
 
 if __name__ == "__main__":
     main()

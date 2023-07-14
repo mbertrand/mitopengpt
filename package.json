@@ -3,15 +3,15 @@
   "version": "0.0.2",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "preview": "next build && next start",
-    "typecheck": "tsc --noEmit",
-    "format:write": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
-    "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache"
+    "dev": "cd frontend && next dev",
+    "build": "cd frontend && next build",
+    "start": "cd frontend && next build && next start -p $PORT",
+    "lint": "cd frontend && next lint",
+    "lint:fix": "cd frontend && next lint --fix",
+    "preview": "cd frontend && next build && next start",
+    "typecheck": "cd frontend && tsc --noEmit",
+    "format:write": "cd frontend && prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
+    "format:check": "cd frontend && prettier --check \"**/*.{ts,tsx,mdx}\" --cache"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.0.4",
