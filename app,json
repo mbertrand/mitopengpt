@@ -6,6 +6,9 @@
   ],
   "buildpacks": [
     {
+      "url": "https://github.com/heroku/heroku-buildpack-apt"
+    },
+    {
       "url": "https://github.com/heroku/heroku-buildpack-nodejs"
     }, 
     {
@@ -13,12 +16,13 @@
     },
     {
       "url": "https://github.com/heroku/heroku-buildpack-pgbouncer"
+    },
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-nginx"
     }
   ],
   "description": "semantic_mitopen",
-  "env": {
-    
-  },
+  "env": {  },
   "keywords": [
     "FastAPI",
     "Python",
