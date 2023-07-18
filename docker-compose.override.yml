@@ -11,4 +11,4 @@ services:
       /bin/bash -c 'npm install --include=dev && npm run dev'
 
   web:
-    command: gunicorn -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker semantic_mitopen.main:app --reload
+    command: uvicorn --host 0.0.0.0 --port 8000 semantic_mitopen.main:app --reload

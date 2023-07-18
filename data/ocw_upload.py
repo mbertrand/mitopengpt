@@ -1,16 +1,20 @@
+import hashlib
+import os
+import re
 import time
+from math import ceil
+from threading import Thread
+
+import numpy as np
+import openai
 import psycopg2
 import tiktoken
-import re
-import openai
-import numpy as np
-import os
 from dotenv import load_dotenv
-from psycopg2.extras import RealDictCursor
 from pgvector.psycopg2 import register_vector
 from psycopg2.extras import RealDictCursor
 
 load_dotenv()
+
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     """Returns the number of tokens in a text string."""
@@ -18,39 +22,63 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
-class PGChunk:
-    def __init__(self, content_file, title, url, content, content_length, content_tokens, embedding):
+
+class ContentVector:
+    def __init__(
+        self,
+        content_file,
+        title,
+        url,
+        content,
+        content_length,
+        content_tokens,
+        embedding,
+    ):
         self.run_title = content_file["run_title"]
+        self.platform = content_file["platform"]
         self.run_id = content_file["run_id"]
+        self.run_key = content_file["run_key"]
         self.run_url = content_file["run_url"]
-        self.page_title = title
-        self.page_url = url
+        self.content_id = content_file["id"]
+        self.platform = content_file["platform"]
+        self.content_title = title
+        self.content_url = url
         self.content = content
+        self.content_hash = get_hash(content_file, content)
         self.content_length = content_length
         self.content_tokens = content_tokens
         self.embedding = embedding
 
-class PGPage:
-    def __init__(self, title, url, content, length, tokens, chunks):
-        self.title = title
-        self.url = url
-        self.content = content
-        self.length = length
-        self.tokens = tokens
-        self.chunks = chunks
 
 def get_title(content_file):
-    return (content_file["content_title"] or content_file["title"] or content_file["key"].split('/')[-1])
+    return (
+        content_file["content_title"]
+        or content_file["title"]
+        or content_file["key"].split("/")[-1]
+    )
+
 
 def get_url(content_file):
     if content_file["key"]:
         return f'https://ocw.mit.edu/{content_file["key"]}'
-    
+
+
+def get_hash(content_file, content):
+    return hashlib.md5(
+        f'{content_file["platform"]}_{content_file["run_key"]}_{content}'.encode(
+            "utf-8"
+        )
+    ).hexdigest()
+
 
 def get_content(content_file):
-    lines = [f"@@@^^^{line.strip()}" for line in re.sub(r"[^\s\w\.]+", "", content_file["content"]).split("\n") if line.strip() != ""]
+    lines = [
+        f"@@@^^^{line.strip()}"
+        for line in re.sub(r"[^\s\w\.]+", "", content_file["content"]).split("\n")
+        if line.strip() != ""
+    ]
     if len(lines) > 0:
-        lines = ' '.join(lines)
+        lines = " ".join(lines)
         return lines
     else:
         return None
@@ -59,45 +87,56 @@ def get_content(content_file):
 def chunk_file(content):
     CHUNK_SIZE = 200
     CHUNK_MAX = 250
-    page_text_chunks = [];
+    page_text_chunks = []
     if num_tokens_from_string(content, "cl100k_base") > CHUNK_SIZE:
-        split = '@@@^^^'.join(content.split('. ')).split('@@@^^^')
+        split = "@@@^^^".join(content.split(". ")).split("@@@^^^")
         chunkText = ""
         for sentence in split:
             sentence = sentence.strip()
-            if len(sentence) == 0: 
+            if len(sentence) == 0:
                 continue
-            sentence_tokens = num_tokens_from_string(sentence, "cl100k_base");
+            sentence_tokens = num_tokens_from_string(sentence, "cl100k_base")
             if sentence_tokens > CHUNK_SIZE:
                 continue
-            chunk_tokens = num_tokens_from_string(chunkText, "cl100k_base");
+            chunk_tokens = num_tokens_from_string(chunkText, "cl100k_base")
             if chunk_tokens + sentence_tokens > CHUNK_SIZE:
-                page_text_chunks.append(chunkText.strip());
-                chunkText = "";
-            if re.search('[a-zA-Z]', sentence[-1]):
-                chunkText += sentence + '. '
+                page_text_chunks.append(chunkText.strip())
+                chunkText = ""
+            if re.search("[a-zA-Z]", sentence[-1]):
+                chunkText += sentence + ". "
             else:
-                chunkText += sentence + ' '
-        page_text_chunks.append(chunkText.strip());
+                chunkText += sentence + " "
+        page_text_chunks.append(chunkText.strip())
     else:
         page_text_chunks.append(content.strip())
-    
+
     if len(page_text_chunks) > 2:
         last_elem = num_tokens_from_string(page_text_chunks[-1], "cl100k_base")
-        second_to_last_elem = num_tokens_from_string(page_text_chunks[-2], "cl100k_base")
+        second_to_last_elem = num_tokens_from_string(
+            page_text_chunks[-2], "cl100k_base"
+        )
         if last_elem + second_to_last_elem < CHUNK_MAX:
             page_text_chunks[-2] += page_text_chunks[-1]
             page_text_chunks.pop()
-    
+
     return page_text_chunks
 
 
 def embed_chunk(resource, title, url, content):
-    embedding = openai.Embedding.create(
-        input = content, 
-        model = 'text-embedding-ada-002')['data'][0]['embedding']
-    chunk = PGChunk(resource, title, url, content, len(content), num_tokens_from_string(content, "cl100k_base"), embedding)
+    embedding = openai.Embedding.create(input=content, model="text-embedding-ada-002")[
+        "data"
+    ][0]["embedding"]
+    chunk = ContentVector(
+        resource,
+        title,
+        url,
+        content,
+        len(content),
+        num_tokens_from_string(content, "cl100k_base"),
+        embedding,
+    )
     return chunk
+
 
 def make_file_embeddings(cur, content_file):
     title = get_title(content_file)
@@ -118,88 +157,154 @@ def make_file_embeddings(cur, content_file):
             except Exception as e:
                 print(f"Failed to embed {content_file['title']}")
                 print(e)
-                return        
+                return
         embedding = np.array(pg_chunk.embedding)
-        sql = 'INSERT INTO ' + os.getenv('POSTGRES_TABLE_NAME') + '(run_title, run_id, run_url, page_title, page_url, content, content_length, content_tokens, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);'
-        cur.execute(sql, (
-            pg_chunk.run_title,
-            pg_chunk.run_id,
-            pg_chunk.run_url,
-            pg_chunk.page_title,
-            pg_chunk.page_url,
-            pg_chunk.content,
-            str(pg_chunk.content_length),
-            str(pg_chunk.content_tokens),
-            embedding))
-       
+        sql = (
+            "INSERT INTO "
+            + os.getenv("POSTGRES_TABLE_NAME")
+            + "(run_title, run_id, run_key, run_url, platform, page_title, content_title, page_url, content_url, content, content_id, content_hash, content_length, content_tokens, embedding)"
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+        )
+        #'ON CONFLICT(content_hash) DO UPDATE SET embedding = %s;'
+        cur.execute(
+            sql,
+            (
+                pg_chunk.run_title,
+                pg_chunk.run_id,
+                pg_chunk.run_key,
+                pg_chunk.run_url,
+                pg_chunk.platform,
+                pg_chunk.content_title,
+                pg_chunk.content_title,
+                pg_chunk.content_url,
+                pg_chunk.content_url,
+                pg_chunk.content,
+                pg_chunk.content_id,
+                pg_chunk.content_hash,
+                str(pg_chunk.content_length),
+                str(pg_chunk.content_tokens),
+                # embedding,
+                embedding,
+            ),
+        )
 
-def main():
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-    conn_open = None
-    conn_vector = None
 
-    try :
-        print('Connecting to the Open database...')
+def process_courses(course_ids):
+    try:
+        print(f"Processing course_ids {course_ids}")
         conn_open = psycopg2.connect(
-            host = os.getenv('OPEN_POSTGRES_HOST'),
-            database = os.getenv('OPEN_POSTGRES_DB_NAME'),
-            user = os.getenv('OPEN_POSTGRES_USERNAME'),
-            password = os.getenv('OPEN_POSTGRES_PASSWORD'),
-            cursor_factory=RealDictCursor
+            host=os.getenv("OPEN_POSTGRES_HOST"),
+            database=os.getenv("OPEN_POSTGRES_DB_NAME"),
+            user=os.getenv("OPEN_POSTGRES_USERNAME"),
+            password=os.getenv("OPEN_POSTGRES_PASSWORD"),
+            cursor_factory=RealDictCursor,
         )
 
         cur_open = conn_open.cursor()
-        start_course_id = os.getenv('START_COURSE_ID', "50f8d6059dd4313a5e46b05ba5365d2a+14.472")
-        #courses/14-472-public-economics-ii-spring-2004
 
-        print('Connecting to the vector PostgreSQL database...')
         conn_vector = psycopg2.connect(
-            host = os.getenv('POSTGRES_HOST'),
-            database = os.getenv('POSTGRES_DB_NAME'),
-            user = os.getenv('POSTGRES_USERNAME'),
-            password = os.getenv('POSTGRES_PASSWORD')
+            host=os.getenv("POSTGRES_HOST"),
+            database=os.getenv("POSTGRES_DB_NAME"),
+            user=os.getenv("POSTGRES_USERNAME"),
+            password=os.getenv("POSTGRES_PASSWORD"),
         )
         register_vector(conn_vector)
 
         OPEN_QUERY = """
-        SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.url as run_url, run.platform, course.course_id FROM course_catalog_contentfile as cf 
+        SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.platform as platform, run.run_id as run_key,
+        run.url as run_url, run.platform as platform, course.course_id FROM course_catalog_contentfile as cf
         LEFT JOIN course_catalog_learningresourcerun AS run ON cf.run_id = run.id INNER JOIN course_catalog_course AS course ON run.object_id = course.id
-        WHERE cf.content IS NOT NULL and cf.content != '' and course.published IS TRUE and run.published IS TRUE and course.course_id >= %s ORDER BY course.course_id ASC, run.run_id ASC, cf.id ASC;
+        WHERE cf.content IS NOT NULL and cf.content != '' and course.published IS TRUE and run.published IS TRUE and course.course_id IN %s ORDER BY course.course_id ASC, run.run_id ASC, cf.id ASC;
         """
 
         print("Getting content files...")
-        cur_open.execute(OPEN_QUERY, [start_course_id,])
+        cur_open.execute(OPEN_QUERY, [tuple(course_ids)])
         content_files = cur_open.fetchall()
 
-        print("Start embedding files...")
+        print(f"Start embedding files for course ids {course_ids}")
         course = None
         run = None
         for content_file in content_files:
             if not content_file["content"].strip():
                 continue
-            if content_file['course_id'] != course:
+            if content_file["course_id"] != course:
                 print(f"Course: {content_file['course_id']}")
-                course = content_file['course_id']
-            if content_file['run_id'] != run:
+                course = content_file["course_id"]
+            if content_file["run_id"] != run:
                 print(f"(Run: {content_file['run_id']})")
-                run = content_file['run_id']
+                run = content_file["run_id"]
             print(f"Embedding {content_file['key']}")
             cur_vector = conn_vector.cursor()
             make_file_embeddings(cur_vector, content_file)
-            print("Committing...")
             conn_vector.commit()
             cur_vector.close()
-            
 
     except (Exception, psycopg2.DatabaseError) as error:
         raise error
     finally:
         if conn_vector is not None:
             conn_vector.close()
-            print('Vector database connection closed.')
+            print("Vector database connection closed.")
         if conn_open is not None:
             conn_open.close()
-            print('MIT Open database connection closed.')           
+            print("MIT Open database connection closed.")
+
+
+def chunks(ids, num_chunks):
+    size = ceil(len(ids) / num_chunks)
+    return list(map(lambda x: ids[x * size : x * size + size], list(range(num_chunks))))
+
+
+def main():
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    conn_open = None
+    conn_vector = None
+
+    try:
+        conn_open = psycopg2.connect(
+            host=os.getenv("OPEN_POSTGRES_HOST"),
+            database=os.getenv("OPEN_POSTGRES_DB_NAME"),
+            user=os.getenv("OPEN_POSTGRES_USERNAME"),
+            password=os.getenv("OPEN_POSTGRES_PASSWORD"),
+            cursor_factory=RealDictCursor,
+        )
+
+        cur_open = conn_open.cursor()
+        start_course_id = os.getenv(
+            "START_COURSE_ID", "50f8d6059dd4313a5e46b05ba5365d2a+14.472"
+        )
+        # courses/14-472-public-economics-ii-spring-2004
+
+        OPEN_QUERY = """
+        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id ASC LIMIT 5;
+        """
+
+        print("Getting content files...")
+        cur_open.execute(
+            OPEN_QUERY,
+            [
+                start_course_id,
+            ],
+        )
+        course_ids = [result["course_id"] for result in cur_open.fetchall()]
+
+        # Divide the content_files into 5 chunks
+        threads = []
+        for chunk in chunks(course_ids, 5):
+            thread = Thread(target=process_courses, args=([chunk]))
+            threads.append(thread)
+            thread.start()
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        raise error
+    finally:
+        if conn_vector is not None:
+            conn_vector.close()
+            print("Vector database connection closed.")
+        if conn_open is not None:
+            conn_open.close()
+            print("MIT Open database connection closed.")
+
 
 if __name__ == "__main__":
     main()

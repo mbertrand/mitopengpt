@@ -56,8 +56,9 @@ export function Search({ isLoading, data }: SearchProps) {
           searchResults?.map((source: any) => (
             <Card className="mx-2 md:mx-5 mb-5">
               <CardHeader>
-                <CardTitle className="mb-2" link={source["page_url"]}>
-                  {extractFileTitles(source["page_title"])}
+                <CardTitle className="mb-2" link={source["content_url"]}>
+                  {extractFileTitles(source["content_title"])}
+                  <a href={source["run_url"]}>{source["run_title"]}</a>
                 </CardTitle>
                 <CardDescription>
                   <hr className="border-t-4" />

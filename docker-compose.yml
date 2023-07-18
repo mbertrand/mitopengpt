@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-pgvector
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
   nginx:
     image: nginx:1.9.5
     ports:
@@ -17,6 +25,8 @@ services:
     ports:
       - 8000:8000
     env_file: .env
+    links:
+      - db
   watch:
     image: node:18.4.0
     working_dir: /app
@@ -25,8 +35,10 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/app      
+      - .:/app
     environment:
       DOCKER_HOST: ${DOCKER_HOST:-missing}
       CONTAINER_NAME: 'watch'
     env_file: .env
+    links:
+      - db

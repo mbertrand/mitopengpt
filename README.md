@@ -15,7 +15,7 @@ Search was created with [OpenAI Embeddings](https://platform.openai.com/docs/gui
 
 First, we loop over the documentation urls and generate embeddings for each chunk of text in the page.
 
-Then in the app we take the user's search query, generate an embedding, and use the result to find the pages that contain similar content 
+Then in the app we take the user's search query, generate an embedding, and use the result to find the pages that contain similar content
 
 The comparison is done using cosine similarity across our database of vectors.
 
@@ -50,39 +50,22 @@ Note: Or, connect to any PostgreSQL server using the env variables defined below
 3. Clone repo
 
 ```bash
-git clone https://github.com/mbertrand/mitopengpt.git
+git clone https://github.com/mitodl/semantic-mitopen.git
 ```
 
-4. Install dependencies
+4. Set up environment variables
 
-```bash
-cd frontend
-npm i
-cd ../backend
-pip install -r requirements.txt
-```
-
-5. Set up environment variables
-
-Create a .env.local file in the root of the frontend folder with the following variables:
-
-```bash
-NEXT_PUBLIC_SEARCH_ENDPOINT =
-NEXT_PUBLIC_CHAT_ENDPOINT = 
-OPENAI_API_KEY = 
-```
-
-Create a .env file in the root of the backend folder with the following variables:
+Create a .env file in the root of the repo folder with the following variables:
 
 ```bash
 OPENAI_API_KEY = # Your OpenAI API key
 # Connection info for the Postgres database that will store text chunks and embeddings
-POSTGRES_HOST = 
-POSTGRES_DB_NAME = 
-POSTGRES_USERNAME = 
+POSTGRES_HOST =
+POSTGRES_DB_NAME =
+POSTGRES_USERNAME =
 POSTGRES_TABLE_NAME = #if you used setup.sql, this should be "mit_open_chunks"
 POSTGRES_SEARCH_FUNCTION = #if you used setup.sql, this should be "mit_open_gpt_search"
-POSTGRES_PASSWORD = 
+POSTGRES_PASSWORD =
 # Connection info for the Postgres database from which MIT Open content will be retrieved
 OPEN_POSTGRES_HOST=
 OPEN_POSTGRES_DB_NAME=
@@ -92,12 +75,10 @@ OPEN_POSTGRES_PASSWORD=
 
 ### Dataset
 
-6. Run parsing script
-
-Note: The ocw-upload.py script requires the same environment variables as the backend folder. 
+5. Run parsing script
 
 ```bash
-python3 data/ocw-upload.py
+docker-compose run --rm web python3 data/ocw-upload.py
 ```
 
 
@@ -106,10 +87,7 @@ python3 data/ocw-upload.py
 7. Run entire app
 
 ```bash
-cd backend
-uvicorn app.main:app --reload
-cd ../frontend
-npm run dev
+docker-compose up
 ```
 
 ## Credits

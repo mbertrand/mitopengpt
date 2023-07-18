@@ -1,11 +1,14 @@
+import logging
+import os
+
 import asyncpg
-import logging, os
 from dotenv import load_dotenv
 from pgvector.asyncpg import register_vector
 
 _logger = logging.getLogger(__name__)
 
 load_dotenv()
+
 
 class Database:
     def __init__(self):
@@ -17,7 +20,7 @@ class Database:
         self.database = os.getenv("POSTGRES_DB_NAME")
         self._cursor = None
         self._connection_pool = None
-        
+
     async def connect(self):
         if not self._connection_pool:
             try:

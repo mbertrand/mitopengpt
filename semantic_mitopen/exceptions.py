@@ -27,6 +27,7 @@ class InvalidPostgresQueryException(HTTPException):
             detail="Unable to search or query the database.",
         )
 
+
 class InvalidChatCompletionException(HTTPException):
     """
     Chat Completion was unable to successfully return a response.
