@@ -23,19 +23,27 @@ async def chat_handler(request: Request, query: query):
     rows = await helper(request, query)
 
     pages = []
-    sources = ""
+    content = (
+        f"""Please answer the following IMPORTANT PROMPT truthfully and as accurately as possible.
+                Use the following sources (which shall be denoted with a SOURCE TITLE and SOURCE CONTENT).
+                Try to not directly copy the sources word-for-word. Remember, you help students with their questions
+                about the MIT course documentation and TRY TO USE THE SOURCES AS CONTEXT to the best of your ability. However, you want to
+                mainly focus on answering the user prompt. Do not randomly use the sources that have nothing to
+                do with the question asked by the user. You do not have to explicity
+                mention the source names and which sources you used in your answer.
+                PLEASE MAKE THE RESPONSE A {query.sentences.upper()} {query.sentences.upper()} {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
+                If you are giving a SHORT or MEDIUM response, do not add a long response with [Answer] or an "Answer" heading.
+                Always try to keep track of your response length especially before you give the response.
+
+                Here is the IMPORTANT PROMPT: """
+        + query.prompt
+        + "\n\n Here are the SOURCES: \n\n"
+    )
     for row in rows:
         dic = dict(row)
         pages.append(dic)
-        sources += "SOURCE TITLE: " + dic["content_title"] + "\n"
-        sources += "SOURCE CONTENT: " + dic["content"]
-    prompt_context = f"""
-    Answer the question based on the context below, and if the question can't be answered based on the context,
-    say \"Sorry, I can't find an answer from the MIT course content\"\n\n
-    PLEASE MAKE THE RESPONSE A {query.sentences.upper()} {query.sentences.upper()} {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
-    If you are giving a SHORT or MEDIUM response, do not add a long response with [Answer] or an "Answer" heading.
-    Context: {sources}\n\n---\n\nQuestion: {query.prompt}\nAnswer:
-    """
+        content += "SOURCE TITLE: " + dic["content_title"] + "\n"
+        content += "SOURCE CONTENT: " + dic["content"]
 
     messages = []
     messages.append(
@@ -51,7 +59,7 @@ async def chat_handler(request: Request, query: query):
                        Essentially just give your entire response as a Markdown document.""",
         )
     )
-    messages.append(message(role="user", content=prompt_context))
+    messages.append(message(role="user", content=content))
 
     return chat_response(messages=messages, sources=pages)
 
