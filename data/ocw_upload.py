@@ -1,6 +1,7 @@
 import hashlib
 import os
 import re
+import sys
 import time
 from math import ceil
 from threading import Thread
@@ -248,6 +249,7 @@ def process_courses(course_ids):
         if conn_open is not None:
             conn_open.close()
             print("MIT Open database connection closed.")
+        return
 
 
 def chunks(ids, num_chunks):
@@ -256,6 +258,7 @@ def chunks(ids, num_chunks):
 
 
 def main():
+    num_threads = sys.argv[1] if len(sys.argv) > 1 else 1
     openai.api_key = os.getenv("OPENAI_API_KEY")
     conn_open = None
     conn_vector = None
@@ -276,7 +279,7 @@ def main():
         # courses/14-472-public-economics-ii-spring-2004
 
         OPEN_QUERY = """
-        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id ASC LIMIT 5;
+        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id ASC;
         """
 
         print("Getting content files...")
@@ -290,10 +293,12 @@ def main():
 
         # Divide the content_files into 5 chunks
         threads = []
-        for chunk in chunks(course_ids, 5):
+        for chunk in chunks(course_ids, num_threads):
             thread = Thread(target=process_courses, args=([chunk]))
             threads.append(thread)
             thread.start()
+        for thread in threads:
+            thread.join()
 
     except (Exception, psycopg2.DatabaseError) as error:
         raise error

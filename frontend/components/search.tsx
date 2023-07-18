@@ -58,7 +58,7 @@ export function Search({ isLoading, data }: SearchProps) {
               <CardHeader>
                 <CardTitle className="mb-2" link={source["content_url"]}>
                   {extractFileTitles(source["content_title"])}
-                  <a href={source["run_url"]}>{source["run_title"]}</a>
+                  <a target="_blank"  href={source["run_url"]}>{source["run_title"]}</a>
                 </CardTitle>
                 <CardDescription>
                   <hr className="border-t-4" />

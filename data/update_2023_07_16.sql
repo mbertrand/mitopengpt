@@ -2,6 +2,8 @@ ALTER TABLE mit_open_chunks ADD COLUMN content_title text;
 ALTER TABLE mit_open_chunks ADD COLUMN content_url text;
 ALTER TABLE mit_open_chunks ADD COLUMN content_hash varchar(32);
 ALTER TABLE mit_open_chunks ADD COLUMN run_key text;
+ALTER TABLE mit_open_chunks ADD COLUMN platform varchar(10);
+ALTER TABLE mit_open_chunks ADD COLUMN content_id bigint;
 
 UPDATE mit_open_chunks SET content_title = page_title, content_url = page_url;
 
