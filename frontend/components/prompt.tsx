@@ -112,7 +112,7 @@ export function Prompt({ onChange, setLoading, setData, setApiLeyListener, messa
         { width < 600 &&
           <TextInput
             className="resize-none overflow-hidden pb-4 md:pb-2 pr-20 pt-4 md:pt-6"
-            placeholder="What is a VPC?"
+            placeholder="What are the laws of thermodynamics?"
             id="prompt"
             disabled={disabled}
             value={textareaValue}
@@ -125,7 +125,7 @@ export function Prompt({ onChange, setLoading, setData, setApiLeyListener, messa
         { width >= 600 &&
           <TextInput
             className="resize-none overflow-hidden pb-4 md:pb-2 pr-20 pt-4 md:pt-6"
-            placeholder="What is a VPC?"
+            placeholder="What are the laws of thermodynamics?"
             id="prompt"
             disabled={disabled}
             value={textareaValue}
