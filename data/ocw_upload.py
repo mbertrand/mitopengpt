@@ -139,20 +139,35 @@ def embed_chunk(resource, title, url, content):
     return chunk
 
 
-def make_file_embeddings(cursor, content_file):
+def make_file_embeddings(cursor, content_file, delete_existing=False):
     title = get_title(content_file)
     content = get_content(content_file)
     url = get_url(content_file)
+
+    if delete_existing:
+        # Delete any existing chunks for this file
+        cursor.execute(
+            "DELETE FROM "
+            + os.getenv("POSTGRES_TABLE_NAME")
+            + " WHERE content_id = %s",
+            (content_file["id"],),
+        )
+    else:
+        # Skip processing if we already have a chunk for this file
+        cursor.execute(
+            "SELECT content_id FROM "
+            + os.getenv("POSTGRES_TABLE_NAME")
+            + " WHERE content_id = %s",
+            (content_file["id"],),
+        )
+        row = cursor.fetchone()
+        if row:
+            print(f"Skipping, existing chunk for {content_file['key']}")
+            return False
+
     if content == None:
-        return
+        return False
     page_text_chunks = chunk_file(content)
-
-    # Avoid dupes, delete any existing chunks for this file
-    cursor.execute(
-        "DELETE FROM " + os.getenv("POSTGRES_TABLE_NAME") + " WHERE content_id = %s",
-        (content_file["id"],),
-    )
-
     for chunk in page_text_chunks:
         try:
             pg_chunk = embed_chunk(content_file, title, url, chunk)
@@ -194,6 +209,7 @@ def make_file_embeddings(cursor, content_file):
                 embedding,
             ),
         )
+        return True
 
 
 def process_courses(course_ids):
@@ -245,9 +261,9 @@ def process_courses(course_ids):
                     print(f"(Run: {content_file['run_id']})")
                     run = content_file["run_id"]
                 print(f"Embedding {content_file['key']}")
-                make_file_embeddings(conn_vector_cursor, content_file)
-                print("Committing...")
-                conn_vector_batch.commit()
+                if make_file_embeddings(conn_vector_cursor, content_file):
+                    print("Committing...")
+                    conn_vector_batch.commit()
         print("Done embedding files for this batch of courses.")
 
     except (Exception, psycopg2.DatabaseError) as error:
