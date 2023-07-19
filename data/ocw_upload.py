@@ -139,13 +139,19 @@ def embed_chunk(resource, title, url, content):
     return chunk
 
 
-def make_file_embeddings(cur, content_file):
+def make_file_embeddings(cursor, content_file):
     title = get_title(content_file)
     content = get_content(content_file)
     url = get_url(content_file)
     if content == None:
         return
     page_text_chunks = chunk_file(content)
+
+    # Avoid dupes, delete any existing chunks for this file
+    cursor.execute(
+        "DELETE FROM " + os.getenv("POSTGRES_TABLE_NAME") + " WHERE content_id = %s",
+        (content_file["id"],),
+    )
 
     for chunk in page_text_chunks:
         try:
@@ -167,7 +173,7 @@ def make_file_embeddings(cur, content_file):
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
         )
         #'ON CONFLICT(content_hash) DO UPDATE SET embedding = %s;'
-        cur.execute(
+        cursor.execute(
             sql,
             (
                 pg_chunk.run_title,
@@ -191,9 +197,12 @@ def make_file_embeddings(cur, content_file):
 
 
 def process_courses(course_ids):
+    conn_open_batch = None
+    conn_vector_batch = None
+
     try:
-        print(f"Processing course_ids {course_ids}")
-        conn_open = psycopg2.connect(
+        print(f"Processing {len(course_ids)} courses")
+        conn_open_batch = psycopg2.connect(
             host=os.getenv("OPEN_POSTGRES_HOST"),
             database=os.getenv("OPEN_POSTGRES_DB_NAME"),
             user=os.getenv("OPEN_POSTGRES_USERNAME"),
@@ -201,54 +210,54 @@ def process_courses(course_ids):
             cursor_factory=RealDictCursor,
         )
 
-        cur_open = conn_open.cursor()
+        conn_open_cursor = conn_open_batch.cursor()
 
-        conn_vector = psycopg2.connect(
+        conn_vector_batch = psycopg2.connect(
             host=os.getenv("POSTGRES_HOST"),
             database=os.getenv("POSTGRES_DB_NAME"),
             user=os.getenv("POSTGRES_USERNAME"),
             password=os.getenv("POSTGRES_PASSWORD"),
         )
-        register_vector(conn_vector)
+        register_vector(conn_vector_batch)
+        conn_vector_cursor = conn_vector_batch.cursor()
 
         OPEN_QUERY = """
-        SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.platform as platform, run.run_id as run_key,
+        DECLARE super_cursor CURSOR FOR SELECT cf.id, cf.key, cf.title, cf.content, cf.content_title, cf.url, run.title as run_title, run.id as run_id, run.platform as platform, run.run_id as run_key,
         run.url as run_url, run.platform as platform, course.course_id FROM course_catalog_contentfile as cf
         LEFT JOIN course_catalog_learningresourcerun AS run ON cf.run_id = run.id INNER JOIN course_catalog_course AS course ON run.object_id = course.id
         WHERE cf.content IS NOT NULL and cf.content != '' and course.published IS TRUE and run.published IS TRUE and course.course_id IN %s ORDER BY course.course_id ASC, run.run_id ASC, cf.id ASC;
         """
 
         print("Getting content files...")
-        cur_open.execute(OPEN_QUERY, [tuple(course_ids)])
-        content_files = cur_open.fetchall()
-
-        print(f"Start embedding files for course ids {course_ids}")
+        conn_open_cursor.execute(OPEN_QUERY, [tuple(course_ids)])
         course = None
         run = None
-        for content_file in content_files:
-            if not content_file["content"].strip():
-                continue
-            if content_file["course_id"] != course:
-                print(f"Course: {content_file['course_id']}")
-                course = content_file["course_id"]
-            if content_file["run_id"] != run:
-                print(f"(Run: {content_file['run_id']})")
-                run = content_file["run_id"]
-            print(f"Embedding {content_file['key']}")
-            cur_vector = conn_vector.cursor()
-            make_file_embeddings(cur_vector, content_file)
-            conn_vector.commit()
-            cur_vector.close()
+        while True:
+            conn_open_cursor.execute("FETCH 10 FROM super_cursor")
+            content_files = conn_open_cursor.fetchall()
+            for content_file in content_files:
+                if not content_file["content"].strip():
+                    continue
+                if content_file["course_id"] != course:
+                    print(f"Course: {content_file['course_id']}")
+                    course = content_file["course_id"]
+                if content_file["run_id"] != run:
+                    print(f"(Run: {content_file['run_id']})")
+                    run = content_file["run_id"]
+                print(f"Embedding {content_file['key']}")
+                make_file_embeddings(conn_vector_cursor, content_file)
+                print("Committing...")
+                conn_vector_batch.commit()
+        print("Done embedding files for this batch of courses.")
 
     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
         raise error
     finally:
-        if conn_vector is not None:
-            conn_vector.close()
-            print("Vector database connection closed.")
-        if conn_open is not None:
-            conn_open.close()
-            print("MIT Open database connection closed.")
+        if conn_vector_batch is not None:
+            conn_vector_batch.close()
+        if conn_open_batch is not None:
+            conn_open_batch.close()
         return
 
 
@@ -258,10 +267,9 @@ def chunks(ids, num_chunks):
 
 
 def main():
-    num_threads = sys.argv[1] if len(sys.argv) > 1 else 1
+    num_threads = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     openai.api_key = os.getenv("OPENAI_API_KEY")
     conn_open = None
-    conn_vector = None
 
     try:
         conn_open = psycopg2.connect(
@@ -273,13 +281,11 @@ def main():
         )
 
         cur_open = conn_open.cursor()
-        start_course_id = os.getenv(
-            "START_COURSE_ID", "50f8d6059dd4313a5e46b05ba5365d2a+14.472"
-        )
+        start_course_id = os.getenv("START_COURSE_ID", "")
         # courses/14-472-public-economics-ii-spring-2004
 
         OPEN_QUERY = """
-        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id ASC;
+        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id DESC;
         """
 
         print("Getting content files...")
@@ -303,9 +309,6 @@ def main():
     except (Exception, psycopg2.DatabaseError) as error:
         raise error
     finally:
-        if conn_vector is not None:
-            conn_vector.close()
-            print("Vector database connection closed.")
         if conn_open is not None:
             conn_open.close()
             print("MIT Open database connection closed.")
