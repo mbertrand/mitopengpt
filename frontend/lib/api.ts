@@ -13,13 +13,13 @@ function createRequest(
     results: results,
     sentences: sentences,
     similarity_threshold: threshold,
-    temperature: "0.1",
+    temperature: "0",
   } : {
     prompt: textareaValue,
     results: results,
     sentences: sentences,
     similarity_threshold: threshold,
-    temperature: "0.1",
+    temperature: "0",
     api_key: api_key,
   }
 }
@@ -45,6 +45,7 @@ export async function fetchData(
         },
       }
     )
+    console.log("OpenAI prompt: ", JSON.stringify(response.data.messages))
     return response.data
   } catch (err) {
     console.log(err)

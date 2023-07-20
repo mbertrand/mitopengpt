@@ -23,24 +23,24 @@ async def chat_handler(request: Request, query: query):
     rows = await helper(request, query)
 
     pages = []
-    content = "QUESTION:" + query.prompt + "\n\nCOURSE CONTENT: \n\n"
+    content = (
+        f"""
+        Use this MIT course information to provide a {query.sentences.upper()} answer the subsequent question.
+        If the answer cannot be found in the course information, respond only with "Sorry, I could not find an answer.
+        "
+        """
+        + f"\n\nQuestion: {query.prompt}"
+        + "\n\n Here are the SOURCES: \n\n"
+    )
     for row in rows:
         dic = dict(row)
         pages.append(dic)
-        content += f'"""{dic["content"]}"""\n\n'
+        content += f'\n\nMIT course Information section:\n"""\n{dic["content"]}\n"""'
 
     messages = []
     messages.append(
         message(
-            role="system",
-            content=f"""Use ONLY the provided course content delimited by triple quotes to answer questions.
-                IF THE ANSWER CANNOT BE FOUND IN THE COURSE CONTENT, OR IF THERE IS NO COURSE CONTENT PROVIDED,
-                WRITE "Sorry, I could not find an answer from MIT's course content." AND DO NOT PROVIDE ANSWERS OUTSIDE OF THE COURSE CONTENT -
-                THIS IS MOST IMPORTANT!!!.  ABSOLUTELY DO NOT USE ANY OTHER INFORMATION TO ANSWER THE QUESTION,
-                THIS IS EXPRESSLY FORBIDDEN!!!! ALWAYS PROVIDE CITATIONS for your answer.
-                PLEASE MAKE THE RESPONSE A {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
-                If you are giving a SHORT or MEDIUM response, do not add a long response with [Answer] or an "Answer" heading.
-                Always try to keep track of your response length especially before you give the response.""",
+            role="system", content=f"""You answer questions about MIT course content."""
         )
     )
     messages.append(message(role="user", content=content))
