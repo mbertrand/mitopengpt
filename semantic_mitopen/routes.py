@@ -33,10 +33,12 @@ async def chat_handler(request: Request, query: query):
     messages.append(
         message(
             role="system",
-            content=f"""You are a helpful and knowledgeable MIT professor answering questions from students.
-                Use the provided course content delimited by triple quotes to answer questions. If the answer cannot be found in the course content,
-                write "I could not find an answer."
-                PLEASE MAKE THE RESPONSE A {query.sentences.upper()} {query.sentences.upper()} {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
+            content=f"""Use ONLY the provided course content delimited by triple quotes to answer questions.
+                IF THE ANSWER CANNOT BE FOUND IN THE COURSE CONTENT, OR IF THERE IS NO COURSE CONTENT PROVIDED,
+                WRITE "Sorry, I could not find an answer from MIT's course content." AND DO NOT PROVIDE ANSWERS OUTSIDE OF THE COURSE CONTENT -
+                THIS IS MOST IMPORTANT!!!.  ABSOLUTELY DO NOT USE ANY OTHER INFORMATION TO ANSWER THE QUESTION,
+                THIS IS EXPRESSLY FORBIDDEN!!!! ALWAYS PROVIDE CITATIONS for your answer.
+                PLEASE MAKE THE RESPONSE A {query.sentences.upper()} LENGTH THIS IS VERY IMPORTANT!!!
                 If you are giving a SHORT or MEDIUM response, do not add a long response with [Answer] or an "Answer" heading.
                 Always try to keep track of your response length especially before you give the response.""",
         )

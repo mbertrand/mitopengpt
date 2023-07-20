@@ -13,13 +13,13 @@ function createRequest(
     results: results,
     sentences: sentences,
     similarity_threshold: threshold,
-    temperature: "0.5",
+    temperature: "0.1",
   } : {
     prompt: textareaValue,
     results: results,
     sentences: sentences,
     similarity_threshold: threshold,
-    temperature: "0.5",
+    temperature: "0.1",
     api_key: api_key,
   }
 }

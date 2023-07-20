@@ -5,7 +5,7 @@ import { getSettings } from '@/lib/settings'
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge'
- 
+
 export async function POST(req: Request) {
   // Get User API Key
   const cachedKey = getSettings().api_key
@@ -19,10 +19,11 @@ export async function POST(req: Request) {
 
   // Extract the `messages` from the body of the request
   const { messages } = await req.json()
- 
+
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createChatCompletion({
     model: CHAT_MODEL,
+    temperature: 0.1,
     stream: true,
     messages
   })
