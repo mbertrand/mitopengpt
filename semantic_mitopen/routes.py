@@ -25,17 +25,15 @@ async def chat_handler(request: Request, query: query):
     pages = []
     content = (
         f"""
-        Use this MIT course information to provide a {query.sentences.upper()} answer the subsequent question.
-        If the answer cannot be found in the course information, respond only with "Sorry, I could not find an answer.
-        "
+        Use the following MIT course information to provide a {query.sentences.upper()} answer the subsequent question.
         """
         + f"\n\nQuestion: {query.prompt}"
-        + "\n\n Here are the SOURCES: \n\n"
+        + "\n\n Here is the MIT course information: \n\n"
     )
     for row in rows:
         dic = dict(row)
         pages.append(dic)
-        content += f'\n\nMIT course Information section:\n"""\n{dic["content"]}\n"""'
+        content += f'{dic["content"]}\n'
 
     messages = []
     messages.append(
