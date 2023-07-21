@@ -7,13 +7,13 @@ export const IS_PRODUCTION = process.env.NODE_ENV === "production"
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: "2",
-  results: "5",
-  sentences: "short",
+  results: "10",
+  sentences: "long",
   threshold: "0.5",
   api_key: ""
 }
 
 export const DEFAULT_LIMITS: Limits = {
-  results_max: 10,
+  results_max: 20,
   results_min: 1,
 }
