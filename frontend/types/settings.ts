@@ -5,6 +5,8 @@ export interface Settings {
   threshold: string
   api_key: string
   [key: string]: string
+  systemPrompt: string
+  userPrompt: string
 }
 
 export interface Limits {
@@ -12,4 +14,3 @@ export interface Limits {
   results_min: number
   [key: string]: number
 }
-

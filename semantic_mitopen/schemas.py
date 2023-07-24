@@ -13,6 +13,8 @@ class query(BaseModel):
     sentences: str | None = "short"
     results: int | None = 5
     api_key: str | None = os.getenv("OPENAI_API_KEY")
+    systemPrompt: str | None = f"Use the following MIT course information to provide a {sentences.upper()} answer to the subsequent question."
+    userPrompt: str | None = f"""You answer questions about MIT course content, in the style of a friendly professor."""
 
 
 class chunk(BaseModel):

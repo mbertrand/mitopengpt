@@ -20,7 +20,8 @@ import { ComboBox } from "@/components/combobox"
 import { TwoToggle } from "@/components/two-toggle"
 import { getSettings, updateSettings } from "@/lib/settings"
 import { Settings } from "@/types/settings"
-import { DEFAULT_LIMITS } from "@/config/config"
+import { DEFAULT_LIMITS, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "@/config/config"
+
 
 export function Settings() {
   const cachedSettings = getSettings();
@@ -42,8 +43,19 @@ export function Settings() {
   const handleUpdate = (key: string, value: string) => {
     if (key == "results") {
       edgeResults(key, value)
-    }else {
-      setSettings(previousSettings => ({ ...previousSettings, [key]: value }))
+    } else {
+      switch (key) {
+        case "systemPrompt":
+          const systemValue = value || DEFAULT_SYSTEM_PROMPT
+          setSettings(previousSettings => ({ ...previousSettings, [key]: systemValue}))
+          break
+        case "userPrompt":
+          const userValue = value || DEFAULT_USER_PROMPT
+          setSettings(previousSettings => ({ ...previousSettings, [key]: userValue}))
+          break
+        default:
+          setSettings(previousSettings => ({ ...previousSettings, [key]: value}))
+      }
     }
   }
 
@@ -73,8 +85,9 @@ export function Settings() {
         <DialogHeader>
           <DialogTitle>Customize your app settings.</DialogTitle>
           <DialogDescription>
-            Choose your GPT mode, API Key, search result count, and chat response length. Use the similarity scale to measure the{` `}
-            closeness between your prompt and the search results—a higher value indicates stronger match.
+            Choose your GPT mode, API Key, search result count, chat response length, system prompt, and user prompt.
+            Use the similarity scale to measure the{` `} closeness between your prompt and the search results — a higher
+            value indicates stronger match.
             <br />
             <br />
             Click “Save Changes” to confirm your settings.
@@ -132,6 +145,32 @@ export function Settings() {
               className="col-span-5"
             />
             <Label className="col-span-2 text-center">0.9</Label>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="systemPrompt" className="text-right">
+              System Prompt
+            </Label>
+            <Input
+              id="systemPrompt"
+              className="col-span-3"
+              defaultValue={settings.systemPrompt}
+              type="text"
+              item="systemPrompt"
+              onChange={(e) => handleUpdate("systemPrompt", e.target.value.trim())}
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="userPrompt" className="text-right">
+              User Prompt
+            </Label>
+            <Input
+              id="userPrompt"
+              className="col-span-3"
+              defaultValue={settings.userPrompt}
+              type="text"
+              item="userPrompt"
+              onChange={(e) => handleUpdate("userPrompt", e.target.value.trim())}
+            />
           </div>
         </div>
         <DialogFooter>

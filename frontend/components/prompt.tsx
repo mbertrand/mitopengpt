@@ -68,7 +68,9 @@ export function Prompt({ onChange, setLoading, setData, setApiLeyListener, messa
           cachedSettings.results,
           cachedSettings.sentences,
           cachedSettings.threshold,
-          cachedSettings.api_key
+          cachedSettings.api_key,
+          cachedSettings.systemPrompt,
+          cachedSettings.userPrompt
         ).then (async (data) => {
           setData(data)
           const system_prompt = data.messages[0]

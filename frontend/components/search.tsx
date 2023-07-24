@@ -53,8 +53,8 @@ export function Search({ isLoading, data }: SearchProps) {
           </CardContent>
         )}
         {!isLoading &&
-          searchResults?.map((source: any) => (
-            <Card className="mx-2 md:mx-5 mb-5">
+          searchResults?.map((source: any, idx: number) => (
+            <Card className="mx-2 md:mx-5 mb-5" key={idx}>
               <CardHeader>
                 <CardTitle className="mb-2" link={source["content_url"]}>
                   {extractFileTitles(source["content_title"])}

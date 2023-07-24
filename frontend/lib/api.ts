@@ -6,7 +6,9 @@ function createRequest(
   results: string,
   sentences: string,
   threshold: string,
-  api_key: string
+  api_key: string,
+  systemPrompt: string,
+  userPrompt: string
 ) {
   return api_key === "" ? {
     prompt: textareaValue,
@@ -14,6 +16,8 @@ function createRequest(
     sentences: sentences,
     similarity_threshold: threshold,
     temperature: "0",
+    systemPrompt: systemPrompt,
+    userPrompt: userPrompt
   } : {
     prompt: textareaValue,
     results: results,
@@ -21,6 +25,8 @@ function createRequest(
     similarity_threshold: threshold,
     temperature: "0",
     api_key: api_key,
+    systemPrompt: systemPrompt,
+    userPrompt: userPrompt
   }
 }
 
@@ -30,14 +36,16 @@ export async function fetchData(
   results: string,
   sentences: string,
   threshold: string,
-  api_key: string
+  api_key: string,
+  systemPrompt: string,
+  userPrompt: string
 ) {
   try {
     const url = mode === "1" ? SEARCH_ENDPOINT : CHAT_ENDPOINT
-
+    console.log("systemPrompt: ", systemPrompt)
     const response = await axios.post(
       url || "",
-      createRequest(textareaValue, results, sentences, threshold, api_key),
+      createRequest(textareaValue, results, sentences, threshold, api_key, systemPrompt, userPrompt),
       {
         headers: {
           Accept: "application/json",

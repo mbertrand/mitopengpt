@@ -24,24 +24,19 @@ async def chat_handler(request: Request, query: query):
 
     pages = []
     content = (
-        f"""
-        Use the following MIT course information to provide a {query.sentences.upper()} answer the subsequent question.
-        """
+        query.userPrompt.replace("$LENGTH", query.sentences.upper())
         + f"\n\nQuestion: {query.prompt}"
-        + "\n\n Here is the MIT course information: \n\n"
+        + "\n\nMIT course information: \n\n"
     )
     for row in rows:
         dic = dict(row)
         pages.append(dic)
-        content += f'{dic["content"]}\n'
+        content += f'"""{dic["content"]}"""\n'
+    content += ""
 
     messages = []
-    messages.append(
-        message(
-            role="system", content=f"""You answer questions about MIT course content."""
-        )
-    )
     messages.append(message(role="user", content=content))
+    messages.append(message(role="system", content=query.systemPrompt))
     return chat_response(messages=messages, sources=pages)
 
 
