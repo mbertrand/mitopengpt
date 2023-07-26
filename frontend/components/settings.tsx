@@ -126,12 +126,6 @@ export function Settings() {
               onChange={(e) => handleUpdate("results", e.target.value)}
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="sentences" className="text-right">
-              Response
-            </Label>
-            <ComboBox value={settings.sentences} onChange={(value) => handleUpdate("sentences", value)} />
-          </div>
           <div className="my-2 grid grid-cols-12">
             <Label htmlFor="threshold" className="col-span-3 text-center">
               Similarity

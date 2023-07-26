@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import os
 import re
@@ -11,10 +12,15 @@ import openai
 import psycopg2
 import tiktoken
 from dotenv import load_dotenv
+from langchain.text_splitter import CharacterTextSplitter
 from pgvector.psycopg2 import register_vector
 from psycopg2.extras import RealDictCursor
 
 load_dotenv()
+
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 512))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", 0))
+CHUNK_MAX = CHUNK_SIZE + 50
 
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
@@ -85,9 +91,14 @@ def get_content(content_file):
         return None
 
 
-def chunk_file(content):
-    CHUNK_SIZE = 200
-    CHUNK_MAX = 250
+def chunk_file_by_sections(content):
+    splitter = CharacterTextSplitter(
+        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+    )
+    return [chunk.page_content for chunk in splitter.create_documents([content])]
+
+
+def chunk_file_by_size(content):
     page_text_chunks = []
     if num_tokens_from_string(content, "cl100k_base") > CHUNK_SIZE:
         split = "@@@^^^".join(content.split(". ")).split("@@@^^^")
@@ -142,9 +153,11 @@ def embed_chunk(resource, title, url, content):
 def make_file_embeddings(cursor, content_file, delete_existing=False):
     title = get_title(content_file)
     content = get_content(content_file)
+    #content = content_file["content"].strip()
     url = get_url(content_file)
 
     if delete_existing:
+        print("Deleting old chunks...")
         # Delete any existing chunks for this file
         cursor.execute(
             "DELETE FROM "
@@ -165,9 +178,10 @@ def make_file_embeddings(cursor, content_file, delete_existing=False):
             print(f"Skipping, existing chunk for {content_file['key']}")
             return False
 
-    if content == None:
+    if not content:
         return False
-    page_text_chunks = chunk_file(content)
+    page_text_chunks = chunk_file_by_size(content)
+    print(f"Chunked into {len(page_text_chunks)} sections")
     for chunk in page_text_chunks:
         try:
             pg_chunk = embed_chunk(content_file, title, url, chunk)
@@ -209,10 +223,10 @@ def make_file_embeddings(cursor, content_file, delete_existing=False):
                 embedding,
             ),
         )
-        return True
+    return True
 
 
-def process_courses(course_ids):
+def process_courses(course_ids, delete_existing=False):
     conn_open_batch = None
     conn_vector_batch = None
 
@@ -248,9 +262,11 @@ def process_courses(course_ids):
         conn_open_cursor.execute(OPEN_QUERY, [tuple(course_ids)])
         course = None
         run = None
-        while True:
+        still_processing = True
+        while still_processing:
             conn_open_cursor.execute("FETCH 10 FROM super_cursor")
             content_files = conn_open_cursor.fetchall()
+            still_processing = len(content_files) > 0
             for content_file in content_files:
                 if not content_file["content"].strip():
                     continue
@@ -261,9 +277,9 @@ def process_courses(course_ids):
                     print(f"(Run: {content_file['run_id']})")
                     run = content_file["run_id"]
                 print(f"Embedding {content_file['key']}")
-                if make_file_embeddings(conn_vector_cursor, content_file):
-                    print("Committing...")
-                    conn_vector_batch.commit()
+                make_file_embeddings(conn_vector_cursor, content_file, delete_existing)
+                print("Committing...")
+                conn_vector_batch.commit()
         print("Done embedding files for this batch of courses.")
 
     except (Exception, psycopg2.DatabaseError) as error:
@@ -274,6 +290,7 @@ def process_courses(course_ids):
             conn_vector_batch.close()
         if conn_open_batch is not None:
             conn_open_batch.close()
+        print(f"Done processing {course_ids}")
         return
 
 
@@ -283,7 +300,36 @@ def chunks(ids, num_chunks):
 
 
 def main():
-    num_threads = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+
+    parser = argparse.ArgumentParser(
+        description="Create embeddings for MIT Open course content files."
+    )
+    parser.add_argument(
+        "--threads",
+        dest="threads",
+        type=int,
+        default=5,
+        help="Number of simultaneous threads to run",
+    )
+    parser.add_argument(
+        "--ids",
+        dest="course_id_filter",
+        nargs="*",
+        default=[],
+        help="list of course_ids to process",
+    )
+    parser.add_argument(
+        "--delete",
+        dest="delete_existing",
+        default=False,
+        action="store_true",
+        help="Delete existing embeddings for each content file",
+    )
+
+    args = parser.parse_args()
+
+    course_id_filter = args.course_id_filter
+    print(f"COURSE ID FILTER: {course_id_filter}")
     openai.api_key = os.getenv("OPENAI_API_KEY")
     conn_open = None
 
@@ -297,26 +343,29 @@ def main():
         )
 
         cur_open = conn_open.cursor()
-        start_course_id = os.getenv("START_COURSE_ID", "")
-        # courses/14-472-public-economics-ii-spring-2004
 
         OPEN_QUERY = """
-        SELECT DISTINCT course_id from course_catalog_course WHERE course_id > %s AND published IS TRUE and platform = 'ocw' ORDER BY course_id DESC;
+        SELECT DISTINCT course_id from course_catalog_course WHERE published IS TRUE and platform = 'ocw' ORDER BY course_id DESC;
         """
+        query_args = [OPEN_QUERY]
+
+        if course_id_filter:
+            query_args = [OPEN_QUERY.replace("WHERE", "WHERE course_id IN %s AND ")]
+            query_args.append([tuple(course_id_filter)])
 
         print("Getting content files...")
-        cur_open.execute(
-            OPEN_QUERY,
-            [
-                start_course_id,
-            ],
-        )
+        cur_open.execute(*query_args)
+
         course_ids = [result["course_id"] for result in cur_open.fetchall()]
+
+        print(f"Processing {len(course_ids)} courses")
 
         # Divide the content_files into 5 chunks
         threads = []
-        for chunk in chunks(course_ids, num_threads):
-            thread = Thread(target=process_courses, args=([chunk]))
+        for chunk in chunks(course_ids, args.threads):
+            thread = Thread(
+                target=process_courses, args=([chunk, args.delete_existing])
+            )
             threads.append(thread)
             thread.start()
         for thread in threads:
