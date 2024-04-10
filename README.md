@@ -13,7 +13,7 @@ MIT OpenCourseware GPT provides 2 things:
 
 Search was created with [OpenAI Embeddings](https://platform.openai.com/docs/guides/embeddings) (`text-embedding-ada-002`).
 
-First, we loop over the documentation urls and generate embeddings for each chunk of text in the page.
+First, we looped over OCW content (primarily PDF's) and generated embeddings for each chunk of text in the page, saving them to a postgres database.
 
 Then in the app we take the user's search query, generate an embedding, and use the result to find the pages that contain similar content
 
@@ -25,7 +25,7 @@ Results are then ranked by similarity score and returned to the user.
 
 Chat builds on top of search. It uses search results to create a prompt that is fed into GPT-3.5-turbo.
 
-This allows for a chat-like experience where the user can ask questions about AWS documentation and get answers.
+This allows for a chat-like experience where the user can ask questions and get answers based on information from OCW courses.
 
 ## Running Locally
 
