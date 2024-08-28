@@ -63,7 +63,11 @@ async def helper(request: Request, query: query):
         embedding = openai.Embedding.create(
             api_key=query.api_key, input=query.prompt, model="text-embedding-ada-002"
         )["data"][0]["embedding"]
-        sql = "SELECT * FROM " + os.getenv("POSTGRES_SEARCH_FUNCTION") + "($1, $2, $3)"
+        sql = (
+            "SELECT * FROM "
+            + os.getenv("POSTGRES_SEARCH_FUNCTION")
+            + "($1, $2, $3, $4)"
+        )
     except:
         _logger.error({"message": "Issue with creating an embedding."})
         raise exceptions.InvalidPromptEmbeddingException
@@ -71,7 +75,11 @@ async def helper(request: Request, query: query):
     try:
         _logger.info({"message": "Querying Postgres"})
         res = await request.app.state.db.fetch_rows(
-            sql, np.array(embedding), query.similarity_threshold, query.results
+            sql,
+            np.array(embedding),
+            query.similarity_threshold,
+            query.results,
+            "Theory of Numbers",
         )
     except Exception as e:
         _logger.error({"message": "Issue with querying Postgres." + str(e)})
