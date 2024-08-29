@@ -4,6 +4,7 @@ export interface Settings {
   sentences: string
   threshold: string
   api_key: string
+  chat_model: string
   [key: string]: string
   systemPrompt: string
   userPrompt: string

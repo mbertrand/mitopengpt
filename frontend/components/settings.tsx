@@ -21,6 +21,7 @@ import { TwoToggle } from "@/components/two-toggle"
 import { getSettings, updateSettings } from "@/lib/settings"
 import { Settings } from "@/types/settings"
 import { DEFAULT_LIMITS, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "@/config/config"
+import * as React from "react";
 
 
 export function Settings() {
@@ -111,6 +112,18 @@ export function Settings() {
               placeholder="ex. sk-123456789"
               onChange={(e) => handleUpdate("api_key", e.target.value)}
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="api_key" className="text-right">
+              ChatGPT Model
+            </Label>
+            <select name="chatSelector" defaultValue={settings.chat_model}
+                    onChange={(e) => handleUpdate("chat_model", e.target.value)}>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4">gpt-4</option>
+              <option value="gpt-4-turbo">gpt-4-turbo</option>
+              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            </select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="results" className="text-right">

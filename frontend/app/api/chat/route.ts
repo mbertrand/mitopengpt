@@ -1,6 +1,5 @@
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { CHAT_MODEL } from '@/config/config'
 import { getSettings } from '@/lib/settings'
 
 // IMPORTANT! Set the runtime to edge
@@ -10,6 +9,7 @@ export async function POST(req: Request) {
   // Get User API Key
   const cachedKey = getSettings().api_key
   const api_key = (cachedKey === "") ? process.env.OPENAI_API_KEY : cachedKey
+  const chat_model = getSettings().chat_model
 
   // Create an OpenAI API client (that's edge friendly!)
   const AI_CONFIG = new Configuration({
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createChatCompletion({
-    model: CHAT_MODEL,
+    model: chat_model,
     temperature: 0,
     stream: true,
     messages

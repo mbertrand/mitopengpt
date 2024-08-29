@@ -9,7 +9,8 @@ function createRequest(
   threshold: string,
   api_key: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  chat_model: string
 ) {
   return api_key === "" ? {
     prompt: textareaValue,
@@ -19,7 +20,8 @@ function createRequest(
     similarity_threshold: threshold,
     temperature: "0",
     systemPrompt: systemPrompt,
-    userPrompt: userPrompt
+    userPrompt: userPrompt,
+    chat_model: chat_model
   } : {
     prompt: textareaValue,
     course: courseTitle,
@@ -29,7 +31,8 @@ function createRequest(
     temperature: "0",
     api_key: api_key,
     systemPrompt: systemPrompt,
-    userPrompt: userPrompt
+    userPrompt: userPrompt,
+    chat_model: chat_model
   }
 }
 
@@ -42,14 +45,14 @@ export async function fetchData(
   threshold: string,
   api_key: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  chat_model: string
 ) {
   try {
     const url = mode === "1" ? SEARCH_ENDPOINT : CHAT_ENDPOINT
-    console.log("systemPrompt: ", systemPrompt)
     const response = await axios.post(
       url || "",
-      createRequest(textareaValue, courseTitle, results, sentences, threshold, api_key, systemPrompt, userPrompt),
+      createRequest(textareaValue, courseTitle, results, sentences, threshold, api_key, systemPrompt, userPrompt, chat_model),
       {
         headers: {
           Accept: "application/json",
@@ -57,7 +60,6 @@ export async function fetchData(
         },
       }
     )
-    console.log("OpenAI prompt: ", JSON.stringify(response.data.messages))
     return response.data
   } catch (err) {
     console.log(err)

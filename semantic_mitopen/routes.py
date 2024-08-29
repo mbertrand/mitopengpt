@@ -60,6 +60,7 @@ async def helper(request: Request, query: query):
     try:
         _logger.info({"message": "Creating embedding"})
         _logger.info({"api_key": query.api_key})
+        _logger.info({"model": query.api_key})
         embedding = openai.Embedding.create(
             api_key=query.api_key, input=query.prompt, model="text-embedding-ada-002"
         )["data"][0]["embedding"]
@@ -68,6 +69,7 @@ async def helper(request: Request, query: query):
             + os.getenv("POSTGRES_SEARCH_FUNCTION")
             + "($1, $2, $3, $4)"
         )
+        _logger.info({"message": f"The sql to be run is {sql}"})
     except:
         _logger.error({"message": "Issue with creating an embedding."})
         raise exceptions.InvalidPromptEmbeddingException
@@ -81,6 +83,7 @@ async def helper(request: Request, query: query):
             query.results,
             query.course,
         )
+        _logger.info({"message": f"The result is {len(res)} rows long"})
     except Exception as e:
         _logger.error({"message": "Issue with querying Postgres." + str(e)})
         raise exceptions.InvalidPostgresQueryException

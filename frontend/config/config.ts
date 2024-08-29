@@ -2,7 +2,7 @@ import { Settings, Limits } from "@/types/settings"
 
 export const SEARCH_ENDPOINT = process.env.NEXT_PUBLIC_SEARCH_ENDPOINT
 export const CHAT_ENDPOINT = process.env.NEXT_PUBLIC_CHAT_ENDPOINT
-export const CHAT_MODEL = process.env.CHAT_MODEL || 'gpt-3.5-turbo'
+export const CHAT_MODEL = process.env.CHAT_MODEL || 'gpt-4o'
 export const IS_PRODUCTION = process.env.NODE_ENV === "production"
 
 export const DEFAULT_USER_PROMPT = "Answer the following question, using ONLY the course information provided below. \
@@ -14,7 +14,8 @@ export const DEFAULT_SETTINGS: Settings = {
   results: "5",
   sentences: "medium",
   threshold: "0.5",
-  api_key: "",
+  chat_model: CHAT_MODEL,
+  api_key: "", // pragma: allowlist secret
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   userPrompt: DEFAULT_USER_PROMPT
 }
