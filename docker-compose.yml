@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
   nginx:
-    image: nginx:1.9.5
+    image: nginx:1.27.1
     ports:
       - "8011:8011"
     links:

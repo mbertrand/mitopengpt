@@ -8,6 +8,7 @@ import { Prompt } from "@/components/prompt"
 import { useChat } from 'ai/react'
 import { SearchResponse } from "@/types/search"
 import { AntimetalComponent } from "@/components/antimetal"
+import CourseSelector from "@/components/course-selector";
 
 export default function IndexPage() {
   const [chat, setChat] = useState(0)
